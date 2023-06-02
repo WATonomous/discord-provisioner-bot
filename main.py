@@ -20,6 +20,7 @@ async def on_member_join(member):
     logger.info(f'{member} has joined the server.')
 
     # Trigger the provisioner
+    logger.info("Triggering the provisioner")
     async with aiohttp.ClientSession() as session:
         async with session.post(
             'https://api.github.com/repos/WATonomous/infra-config/dispatches',
@@ -31,7 +32,6 @@ async def on_member_join(member):
             },
             json={'event_type': 'provision-discord'},
         ) as resp:
-            logger.info(resp.status)
             if resp.status == 204:
                 logger.info('Successfully triggered the Discord provisioner.')
             else:
