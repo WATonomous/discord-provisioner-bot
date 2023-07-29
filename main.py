@@ -2,9 +2,28 @@ import aiohttp
 import discord
 import logging
 import os
+import sentry_sdk
 from aiohttp import web
 from discord.ext import tasks
+from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.crons import monitor
 
+
+sentry_logging = LoggingIntegration(
+    level=logging.INFO,        # Capture info and above as breadcrumbs
+    event_level=logging.ERROR  # Send errors as events
+)
+sentry_sdk.init(
+    dsn=os.environ["SENTRY_DSN"],
+    integrations=[
+        sentry_logging,
+    ],
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production,
+    traces_sample_rate=1.0,
+)
 logger = logging.getLogger('discord.wato-provisioner')
 
 intents = discord.Intents.none()
@@ -61,6 +80,10 @@ async def health_endpoint(_request):
 @tasks.loop(seconds=60)
 async def healthcheck_loop():
     logger.info(f'Healthcheck loop running. {client.is_closed()=}')
-    # TODO: ping a dead man's switch
+    monitor_once()
+
+@monitor(monitor_slug='discord-provisioner-bot')
+def monitor_once():
+    pass
 
 client.run(os.environ['DISCORD_TOKEN'])
