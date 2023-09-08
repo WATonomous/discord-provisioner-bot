@@ -7,6 +7,7 @@ from aiohttp import web
 from discord.ext import tasks
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.crons import monitor
+from time import perf_counter
 
 
 sentry_logging = LoggingIntegration(
@@ -80,7 +81,10 @@ async def health_endpoint(_request):
 @tasks.loop(seconds=60)
 async def healthcheck_loop():
     logger.info(f'Healthcheck loop running. {client.is_closed()=}')
+    start = perf_counter()
     monitor_once()
+    stop = perf_counter()
+    logger.info(f"Healthcheck loop completed in {stop-start:.2f} seconds")
 
 @monitor(monitor_slug='discord-provisioner-bot')
 def monitor_once():
