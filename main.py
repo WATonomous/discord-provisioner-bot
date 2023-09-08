@@ -7,7 +7,7 @@ from aiohttp import web
 from discord.ext import tasks
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.crons import monitor
-from time import perf_counter
+from time import perf_counter, sleep
 
 
 sentry_logging = LoggingIntegration(
