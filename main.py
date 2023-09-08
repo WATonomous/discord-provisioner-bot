@@ -84,6 +84,6 @@ async def healthcheck_loop():
 
 @monitor(monitor_slug='discord-provisioner-bot')
 def monitor_once():
-    pass
+    sleep(0.5) # space out the begin and end API calls
 
 client.run(os.environ['DISCORD_TOKEN'])
