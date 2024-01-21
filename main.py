@@ -6,6 +6,7 @@ import os
 import sentry_sdk
 from aiohttp import web
 from discord.ext import tasks
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.crons import monitor
 from time import perf_counter, sleep
@@ -51,7 +52,7 @@ if os.getenv("SENTRY_DSN"):
 
     sentry_sdk.init(
         **sentry_config,
-        integrations=[sentry_logging],
+        integrations=[sentry_logging, AsyncioIntegration()],
 
         # Set traces_sample_rate to 1.0 to capture 100%
         # of transactions for performance monitoring.
@@ -118,12 +119,14 @@ async def health_endpoint(_request):
 async def healthcheck_loop():
     logger.info(f'Healthcheck loop running. {client.is_closed()=}')
     start = perf_counter()
-    monitor_once()
+    await monitor_once()
     stop = perf_counter()
     logger.info(f"Healthcheck loop completed in {stop-start:.2f} seconds")
 
 @monitor(monitor_slug='discord-provisioner-bot')
-def monitor_once():
-    sleep(0.5) # space out the begin and end API calls
+async def monitor_once():
+    res = await health_endpoint(None)
+    if res.status != 200:
+        raise Exception(f"Healthcheck failed with status {res.status}")
 
 client.run(os.environ['DISCORD_TOKEN'])
