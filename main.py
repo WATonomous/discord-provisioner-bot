@@ -61,6 +61,7 @@ if os.getenv("SENTRY_DSN"):
         traces_sampler=sentry_traces_sampler,
 
         enable_tracing=True,
+        keep_alive=True,
     )
 else:
     print("No Sentry DSN found. Skipping Sentry setup.")
