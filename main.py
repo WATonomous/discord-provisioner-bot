@@ -7,7 +7,8 @@ import sentry_sdk
 from aiohttp import web
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
-from sentry_sdk.crons import monitor
+from sentry_sdk.crons import capture_checkin
+from sentry_sdk.crons.consts import MonitorStatus
 from time import perf_counter, sleep, time
 
 
@@ -122,25 +123,22 @@ async def health_endpoint(_request):
     # Ping Sentry at least every minute. Using a 30s buffer to be safe.
     if IS_SENTRY_ENABLED and current_time - state["sentry_cron_last_ping_time"] > 30:
         state["sentry_cron_last_ping_time"] = current_time
-        ping_sentry(success)
+        capture_checkin(
+            monitor_slug='discord-provisioner-bot',
+            status=MonitorStatus.OK if success else MonitorStatus.ERROR,
+            monitor_config={
+                "schedule": { "type": "interval", "value": 1, "unit": "minute" },
+                "checkin_margin": 5, # minutes
+                "max_runtime": 1, # minutes
+                "failure_issue_threshold": 1,
+                "recovery_threshold": 2,
+            }
+        )
+        logger.info(f"Pinged Sentry CRON with status {'OK' if success else 'ERROR'}")
 
     if success:
         return web.Response(text='OK')
     else:
         return web.Response(text='Client is closed!', status=500)
-
-# Sentry CRON docs: https://docs.sentry.io/platforms/python/crons/
-@monitor(monitor_slug='discord-provisioner-bot', monitor_config={
-    "schedule": { "type": "interval", "value": 1, "unit": "minute" },
-    "checkin_margin": 5, # minutes
-    "max_runtime": 1, # minutes
-    "failure_issue_threshold": 1,
-    "recovery_threshold": 2,
-})
-def ping_sentry(success):
-    if success:
-        logger.info("Pinged Sentry CRON")
-    else:
-        raise Exception(f"ping_sentry: Healthcheck failed!")
 
 client.run(os.environ['DISCORD_TOKEN'])
