@@ -121,7 +121,7 @@ async def health_endpoint(_request):
         
     current_time = time()
     # Ping Sentry at least every minute. Using a 30s buffer to be safe.
-    if IS_SENTRY_ENABLED and current_time - state["sentry_cron_last_ping_time"] > 30:
+    if IS_SENTRY_ENABLED and current_time - state["sentry_cron_last_ping_time"] > 50:
         state["sentry_cron_last_ping_time"] = current_time
         capture_checkin(
             monitor_slug='discord-provisioner-bot',
